@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --text: #4a3f6b;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+
+        /* المربع الزجاجي الملون والمموج */
+        .glass-container {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            border-radius: 35px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* طبقة الألوان المتحركة داخل المربع */
+        .bg-layer {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(-45deg, #f3ebf6, #ffafcc, #b185db, #f3ebf6);
+            background-size: 400% 400%;
+            animation: gradientMove 10s ease infinite;
+            z-index: -2;
+            transition: background 0.8s ease;
+        }
+
+        /* طبقة الزجاج (Blur) */
+        .glass-container::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: -1;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* كبسة تغيير الألوان */
+        .theme-toggle {
+            position: absolute;
+            top: 12px;
+            right: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            opacity: 0.4;
+            transition: 0.3s;
+            z-index: 10;
+            user-select: none;
+        }
+
+        .theme-toggle:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .tracker-label {
+            font-size: 0.6rem;
+            font-weight: 800;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            opacity: 0.7;
+        }
+
+        .timer-display {
+            font-size: 1.7rem;
+            font-weight: 900;
+            color: var(--text);
+            margin-bottom: 12px;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .controls {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+        }
+
+        button {
+            border: none;
+            padding: 8px 0;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 0.7rem;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .start-btn {
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            flex: 2;
+        }
+
+        .start-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .reset-btn {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text);
+            flex: 1;
+        }
+
+        .is-running .start-btn {
+            background: #ffffff;
+            color: #b185db;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="glass-container" id="container">
+    <!-- كبسة تغيير الألوان المخفية/الصغيرة -->
+    <div class="theme-toggle" id="themeBtn" title="Change Theme">🎨</div>
+
+    <div class="bg-layer" id="bgLayer"></div>
+    
+    <div class="tracker-label">Focus Tracker</div>
+    <div class="timer-display" id="display">00:00:00</div>
+    
+    <div class="controls">
+        <button class="start-btn" id="startStop">Start</button>
+        <button class="reset-btn" id="reset">↺</button>
+    </div>
+</div>
+
+<script>
+    let timer;
+    let seconds = 0;
+    let isRunning = false;
+
+    const display = document.getElementById('display');
+    const startStopBtn = document.getElementById('startStop');
+    const resetBtn = document.getElementById('reset');
+    const container = document.getElementById('container');
+    const bgLayer = document.getElementById('bgLayer');
+    const themeBtn = document.getElementById('themeBtn');
+
+    // مصفوفة ألوان مموجة مختلفة (بينك وموف)
+    const themes = [
+        "linear-gradient(-45deg, #f3ebf6, #ffafcc, #b185db, #f3ebf6)",
+        "linear-gradient(-45deg, #e0c3fc, #8ec5fc, #fbc2eb, #e0c3fc)",
+        "linear-gradient(-45deg, #ff9a9e, #fad0c4, #fad0c4, #ff9a9e)",
+        "linear-gradient(-45deg, #a18cd1, #fbc2eb, #a18cd1, #fbc2eb)",
+        "linear-gradient(-45deg, #ffecd2, #fcb69f, #ffecd2, #fcb69f)"
+    ];
+    let currentTheme = 0;
+
+    themeBtn.addEventListener('click', () => {
+        currentTheme = (currentTheme + 1) % themes.length;
+        bgLayer.style.background = themes[currentTheme];
+        bgLayer.style.backgroundSize = "400% 400%";
+    });
+
+    function updateDisplay() {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        display.textContent = 
+            `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    startStopBtn.addEventListener('click', () => {
+        if (isRunning) {
+            clearInterval(timer);
+            startStopBtn.textContent = 'Start';
+            container.classList.remove('is-running');
+        } else {
+            timer = setInterval(() => {
+                seconds++;
+                updateDisplay();
+            }, 1000);
+            startStopBtn.textContent = 'Pause';
+            container.classList.add('is-running');
+        }
+        isRunning = !isRunning;
+    });
+
+    resetBtn.addEventListener('click', () => {
+        clearInterval(timer);
+        isRunning = false;
+        seconds = 0;
+        updateDisplay();
+        startStopBtn.textContent = 'Start';
+        container.classList.remove('is-running');
+    });
+</script>
+
+</body>
+</html>
+    
+  </body>
+  
+</html>
